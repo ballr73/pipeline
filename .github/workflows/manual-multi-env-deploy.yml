@@ -25,14 +25,14 @@ permissions:
     contents: read
 
 jobs:
-    validate:
+    validate-inputs:
         uses: ./.github/workflows/validate.yml
         with:
             target_environment: ${{ inputs.target_environment }}
             subscription_tag: ${{ inputs.subscription_tag }}
 
-    deploy:
-        needs: validate
+    deploy-app:
+        needs: validate-inputs
         uses: ./.github/workflows/deploy.yml
         with:
             target_environment: ${{ inputs.target_environment }}
