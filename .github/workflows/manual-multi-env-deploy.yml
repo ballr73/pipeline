@@ -25,7 +25,28 @@ permissions:
     contents: read
 
 jobs:
+    validate:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Validate environment and subscription tag
+              env:
+                  TARGET_ENV: ${{ github.event.inputs.target_environment }}
+                  SUB_TAG: ${{ github.event.inputs.subscription_tag }}
+              run: |
+                  case "$TARGET_ENV" in
+                      dev|test) expected="dev" ;;
+                      staging)  expected="ptl" ;;
+                      prod)     expected="prod" ;;
+                      *) echo "::error::Unknown environment '$TARGET_ENV'"; exit 1 ;;
+                  esac
+                  if [[ "$SUB_TAG" != "$expected" ]]; then
+                      echo "::error::Environment '$TARGET_ENV' requires subscription tag '$expected', got '$SUB_TAG'"
+                      exit 1
+                  fi
+                  echo "Validation passed: $TARGET_ENV -> $SUB_TAG"
+
     deploy:
+        needs: validate
         runs-on: ubuntu-latest
         environment: ${{ github.event.inputs.target_environment }}
         steps:
