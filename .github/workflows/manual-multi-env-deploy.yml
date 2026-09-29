@@ -1,47 +1,55 @@
 name: Manual Multi-Environment Deployment
 
 on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "Environment to deploy to"
-        required: true
-        type: choice
-        options:
-          - dev
-          - test
-          - staging
-          - prod
+    workflow_dispatch:
+        inputs:
+            target_environment:
+                description: 'Environment to deploy to'
+                required: true
+                type: choice
+                options:
+                    - dev
+                    - test
+                    - staging
+                    - prod
+            subscription_tag:
+                description: 'Subscription tag for the deployment'
+                required: true
+                type: choice
+                options:
+                    - dev
+                    - ptl
+                    - prod
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
+    validate:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Validate environment and subscription tag
+              env:
+                  TARGET_ENV: ${{ github.event.inputs.target_environment }}
+                  SUB_TAG: ${{ github.event.inputs.subscription_tag }}
+              run: |
+                  case "$TARGET_ENV" in
+                      dev|test) expected="dev" ;;
+                      staging)  expected="ptl" ;;
+                      prod)     expected="prod" ;;
+                      *) echo "::error::Unknown environment '$TARGET_ENV'"; exit 1 ;;
+                  esac
+                  if [[ "$SUB_TAG" != "$expected" ]]; then
+                      echo "::error::Environment '$TARGET_ENV' requires subscription tag '$expected', got '$SUB_TAG'"
+                      exit 1
+                  fi
+                  echo "Validation passed: $TARGET_ENV -> $SUB_TAG"
 
-  deploy-dev:
-    if: github.event.inputs.environment == 'dev'
-    runs-on: ubuntu-latest
-    environment: dev
-    steps:
-      - run: echo "Deploying to DEV"
-
-  deploy-test:
-    if: github.event.inputs.environment == 'test'
-    runs-on: ubuntu-latest
-    environment: test
-    steps:
-      - run: echo "Deploying to TEST"
-
-  deploy-staging:
-    if: github.event.inputs.environment == 'staging'
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-      - run: echo "Deploying to STAGING"
-
-  deploy-prod:
-    if: github.event.inputs.environment == 'prod'
-    runs-on: ubuntu-latest
-    environment: prod
-    steps:
-      - run: echo "Deploying to PROD"
+    deploy:
+        needs: validate
+        runs-on: ubuntu-latest
+        environment: ${{ github.event.inputs.target_environment }}
+        steps:
+            - run: |
+                  echo "Deploying to ${{ github.event.inputs.target_environment }}"
+                  echo "Subscription tag: ${{ github.event.inputs.subscription_tag }}"
