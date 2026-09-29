@@ -1,0 +1,28 @@
+name: Deploy
+
+on:
+    workflow_call:
+        inputs:
+            target_environment:
+                required: true
+                type: string
+            subscription_tag:
+                required: true
+                type: string
+
+permissions:
+    contents: read
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        environment: ${{ inputs.target_environment }}
+        steps:
+            - env:
+                  TARGET_ENV: ${{ inputs.target_environment }}
+                  SUB_TAG: ${{ inputs.subscription_tag }}
+                  MY_VAR: ${{ vars.MY_VAR }}
+              run: |
+                  echo "Deploying to $TARGET_ENV"
+                  echo "Subscription tag: $SUB_TAG"
+                  echo "MY_VAR: $MY_VAR"
